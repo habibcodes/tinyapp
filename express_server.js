@@ -52,7 +52,6 @@ app.post('/urls', (req, res) => {
   res.redirect(`/urls/${shortURL}`);
 });
 
-
 app.get('/urls/:shortURL', (req, res) => {
   const {shortURL} = req.params;
   const longURL = urlDatabase[shortURL];
@@ -60,7 +59,9 @@ app.get('/urls/:shortURL', (req, res) => {
   res.render('urls_show', templateVars);
 });
 
-
+app.get('*', function(req, res) {
+  res.status(404).send('404: shortURL not found.');
+});
 
 
 app.listen(PORT, () => {
