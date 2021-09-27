@@ -1,6 +1,11 @@
 const express = require('express');
 const app = express();
 const PORT = 8080;
+const bodyParser = require('body-parser');
+
+
+// middleware
+app.use(bodyParser.urlencoded({extended: true}));
 
 // template engine
 app.set('view engine', 'ejs');
@@ -29,13 +34,24 @@ app.get('/urls', (req, res) => {
 });
 
 
+// show form must precede id route
+app.get('/urls/new', (req, res) => {
+  res.render('urls_new');
+});
+
+app.post('/urls', (req, res) => {
+  console.log(req.body);
+  res.send('OK');
+});
+
+const generateRandomString = () => {
+  //
+};
+
 app.get('/urls/:shortURL', (req, res) => {
   const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL]};
   res.render('urls_show', templateVars);
 });
-
-
-
 
 
 
