@@ -45,7 +45,8 @@ app.post('/urls', (req, res) => {
 });
 
 const generateRandomString = () => {
-  //
+  const randomStr = (Math.random() + 1).toString(36).substring(7);
+  return randomStr;
 };
 
 app.get('/urls/:shortURL', (req, res) => {
