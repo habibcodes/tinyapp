@@ -33,24 +33,30 @@ app.get('/urls', (req, res) => {
   res.render('urls_index', templateVars);
 });
 
-
-// show form must precede id route
-app.get('/urls/new', (req, res) => {
-  res.render('urls_new');
-});
-
-app.post('/urls', (req, res) => {
-  console.log(req.body);
-  res.send('OK');
-});
-
+// stackOverflow
 const generateRandomString = () => {
   const randomStr = (Math.random() + 1).toString(36).substring(7);
   return randomStr;
 };
 
+// show form must precede id route
+app.get('/urls/new', (req, res) => {
+  res.render('urls_new');
+});
+// generate random string and add it to the db in POST
+app.post('/urls', (req, res) => {
+  // destructured longURL from req
+  const {longURL} = req.body;
+  const shortURL = generateRandomString();
+  urlDatabase[shortURL] = longURL;
+  res.redirect(`/urls/${shortURL}`);
+});
+
+
 app.get('/urls/:shortURL', (req, res) => {
-  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL]};
+  const {shortURL} = req.params;
+  const longURL = urlDatabase[shortURL];
+  const templateVars = { shortURL, longURL};
   res.render('urls_show', templateVars);
 });
 
