@@ -2,10 +2,12 @@ const express = require('express');
 const app = express();
 const PORT = 8080;
 const bodyParser = require('body-parser');
+const morgan = require('morgan');
 
 
 // middleware
 app.use(bodyParser.urlencoded({extended: true}));
+app.use(morgan('tiny'));
 
 // template engine
 app.set('view engine', 'ejs');
@@ -49,15 +51,37 @@ app.post('/urls', (req, res) => {
   const {longURL} = req.body;
   const shortURL = generateRandomString();
   urlDatabase[shortURL] = longURL;
-  res.redirect(`/urls/${shortURL}`);
+  res.redirect('/urls');
 });
 
+// pull and display urls from DB
 app.get('/urls/:shortURL', (req, res) => {
   const {shortURL} = req.params;
   const longURL = urlDatabase[shortURL];
   const templateVars = { shortURL, longURL};
   res.render('urls_show', templateVars);
 });
+
+// UPDATE (edit)
+app.post('/urls/:id', (req, res) => {
+  // extract shortURL id from req.params.shortURL
+  const {id} = req.params;
+  // extract update info from req.body.{name of input}
+  const {updateURL} = req.body;
+  // pass data from req.body.updateURL to urlDatabase
+  urlDatabase[id] = updateURL;
+  // redirect
+  res.redirect('/urls');
+});
+
+// delete urls
+app.post('/urls/:shortURL/delete', (req, res) => {
+  const shortURL = req.params.shortURL;
+  delete urlDatabase[shortURL];
+  res.redirect('/urls');
+});
+
+
 
 app.get('*', function(req, res) {
   res.status(404).send('404: shortURL not found.');
