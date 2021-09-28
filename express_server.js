@@ -3,6 +3,7 @@ const app = express();
 const PORT = 8080;
 const bodyParser = require('body-parser');
 const morgan = require('morgan');
+const cookieParser = require('cookie-parser');
 
 
 // middleware
@@ -81,6 +82,10 @@ app.post('/urls/:shortURL/delete', (req, res) => {
   res.redirect('/urls');
 });
 
+// login
+app.get('/login', (req, res) => {
+  //
+});
 
 
 app.get('*', function(req, res) {
