@@ -18,6 +18,18 @@ const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
 };
+const usersDb = {
+  "jd2343": {
+    id: "jd2343",
+    email: "bilbo@theshire.com",
+    password: "gandalf"
+  },
+  "sk9823": {
+    id: "sk9823",
+    email: "samwise@theshire.com",
+    password: "frodo333"
+  }
+};
 
 
 app.get('/', (req, res) => {
@@ -34,10 +46,9 @@ app.get('/hello', (req, res) => {
 
 app.get('/urls', (req, res) => {
   const templateVars = {
-    username: req.cookies["username"],
+    user:  usersDb[req.cookies["userId"]],
     urls: urlDatabase
   };
-  
   res.render('urls_index', templateVars);
 });
 
@@ -49,7 +60,9 @@ const generateRandomString = () => {
 
 // show form must precede id route
 app.get('/urls/new', (req, res) => {
-  const templateVars = {username: req.cookies["username"]};
+  const templateVars = {
+    user:  usersDb[req.cookies["userId"]],
+  };
   res.render('urls_new', templateVars);
 });
 
@@ -66,8 +79,12 @@ app.post('/urls', (req, res) => {
 app.get('/urls/:shortURL', (req, res) => {
   const {shortURL} = req.params;
   const longURL = urlDatabase[shortURL];
-  const username = req.cookies["username"];
-  const templateVars = { shortURL, longURL, username};
+  const user = usersDb[req.cookies["userId"]];
+  const templateVars = {
+    shortURL,
+    longURL,
+    user
+  };
   res.render('urls_show', templateVars);
 });
 
@@ -90,6 +107,8 @@ app.post('/urls/:shortURL/delete', (req, res) => {
   res.redirect('/urls');
 });
 
+// Authentication Routes //
+
 // login
 app.post('/login', (req, res) => {
   // parse req.body.username
@@ -99,12 +118,88 @@ app.post('/login', (req, res) => {
   // redirect back to /urls
   res.redirect('/urls');
 });
-
 // logout
 app.post('/logout', (req, res) => {
   // clear cookie and redirect to /urls
   res.clearCookie('username');
   res.redirect('/urls');
+});
+
+// Auth Helper Funcs //
+// checks entered email against db emails
+// if exists, sets user to db usersId
+const findUserByEmail = (email, usersDb) => {
+  for (let userId in usersDb) {
+    const userInDb = usersDb[userId];
+    if (email === userInDb.email) {
+      return userInDb;
+    }
+  }
+  return false;
+};
+
+// creates new user with email and pass
+const createUser = (email, password, usersDb) => {
+  const userId = generateRandomString();
+  // create new user object
+  usersDb[userId] = {
+    id: userId,
+    email,
+    password
+  };
+  return userId;
+};
+
+// user auth function
+const authenticateUser = (email, password, usersDb) => {
+  // call user from usersDb
+  const userFound = findUserByEmail(email, usersDb);
+
+  // compare password against one in usersDb
+  if (userFound && userFound.password === password) {
+    return userFound;
+  }
+  return false;
+};
+
+// get register form
+app.get('/register', (req, res) => {
+  //
+  // const username = req.cookies["username"];
+  const templateVars = {user: null};
+  res.render('register', templateVars);
+});
+
+// register POST route
+app.post('/register', (req, res) => {
+  // retrieve username/pass from req.body
+  // save those to variables
+  const {email, password} = req.body;
+  console.log(req.body);
+
+  // check if user in db
+  const userFound = findUserByEmail(email, usersDb);
+  console.log('userFound: ', userFound);
+
+  // if user in usersDb, return user exists error
+  if (userFound) {
+    res.status(401).send('That user already exists. Please enter your password or try again.');
+    return; // terminates and exits here
+  }
+
+  // if not in usersDb = new user -> register to db as new user
+  const newUser = createUser(email, password, usersDb);
+  console.log(newUser);
+
+  // set the user to cookie
+  res.cookie('userId', newUser);
+
+  // redirect to /urls
+  res.redirect('urls');
+
+  // push that to a "users" object in DB
+  // create fake userID with func
+  console.log(usersDb);
 });
 
 
