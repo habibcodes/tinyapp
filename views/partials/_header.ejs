@@ -12,16 +12,16 @@
   </div>
   <!-- display login form -->
   <% if (!user) { %> 
-  <form class="form-inline my-2 my-lg-0" action="/login" method="POST">
-    <input class="form-control mr-sm-2" name="username" type="text" placeholder="Username" aria-label="Search">
-    <button class="btn btn-outline-dark my-2 my-sm-0" type="submit">Login</button>
-  </form>
-  <!-- display logout form -->
-  <% } else { %> 
-  <form class="form-inline my-2 my-lg-0" action="/logout" method="POST">
-    <h6 class="text-dark pt-2">Logged In As: <%= user.email %>!</h6>
-    <button class="btn btn-outline-dark ml-2 my-2 my-sm-0" type="submit">Logout</button>
-  </form>
-  <% } %> 
-</nav>
+    <div>
+      <a href="/login" class="badge badge-success">Login</a>
+      <a href="/register" class="badge badge-success">Register</a>
+    </div>
+      <!-- display logout form -->
+      <% } else { %> 
+        <form class="form-inline my-2 my-lg-0" action="/logout" method="POST">
+          <!-- <h6 class="text-dark pt-2">Logged In As: <%= user.email %>!</h6> -->
+          <a href="/login" class="badge badge-success">Logout</a>
+        </form>
+        <% } %> 
+      </nav>
 </header>
