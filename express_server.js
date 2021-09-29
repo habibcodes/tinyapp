@@ -9,6 +9,7 @@ const cookieParser = require('cookie-parser');
 // middleware
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(morgan('tiny'));
+app.use(cookieParser());
 
 // template engine
 app.set('view engine', 'ejs');
@@ -32,7 +33,11 @@ app.get('/hello', (req, res) => {
 });
 
 app.get('/urls', (req, res) => {
-  const templateVars = {urls: urlDatabase};
+  const templateVars = {
+    username: req.cookies["username"],
+    urls: urlDatabase
+  };
+  
   res.render('urls_index', templateVars);
 });
 
@@ -44,8 +49,10 @@ const generateRandomString = () => {
 
 // show form must precede id route
 app.get('/urls/new', (req, res) => {
-  res.render('urls_new');
+  const templateVars = {username: req.cookies["username"]};
+  res.render('urls_new', templateVars);
 });
+
 // generate random string and add it to the db in POST
 app.post('/urls', (req, res) => {
   // destructured longURL from req
@@ -59,7 +66,8 @@ app.post('/urls', (req, res) => {
 app.get('/urls/:shortURL', (req, res) => {
   const {shortURL} = req.params;
   const longURL = urlDatabase[shortURL];
-  const templateVars = { shortURL, longURL};
+  const username = req.cookies["username"];
+  const templateVars = { shortURL, longURL, username};
   res.render('urls_show', templateVars);
 });
 
@@ -83,9 +91,22 @@ app.post('/urls/:shortURL/delete', (req, res) => {
 });
 
 // login
-app.get('/login', (req, res) => {
-  //
+app.post('/login', (req, res) => {
+  // parse req.body.username
+  const {username} = req.body;
+  // set cookie to the value of username via res.cookie
+  res.cookie('username', username);
+  // redirect back to /urls
+  res.redirect('/urls');
 });
+
+// logout
+app.post('/logout', (req, res) => {
+  // clear cookie and redirect to /urls
+  res.clearCookie('username');
+  res.redirect('/urls');
+});
+
 
 
 app.get('*', function(req, res) {
