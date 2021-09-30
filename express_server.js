@@ -4,6 +4,7 @@ const PORT = 8080;
 const bodyParser = require('body-parser');
 const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
+const bcrypt = require('bcryptjs');
 // helper funcs
 const {findUserByEmail, createUser,authenticateUser, generateRandomString, userLinks} = require('./helpers/helperFunctions');
 // dbs
@@ -14,9 +15,15 @@ const {urlDatabase, usersDb} = require('./database/database');
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(morgan('tiny'));
 app.use(cookieParser());
-
 // template engine
 app.set('view engine', 'ejs');
+
+// hashedPass
+const hashPassword = (unhashedPass) => {
+  const hashedPass = bcrypt.hashSync(unhashedPass, 10);
+  return hashedPass;
+};
+
 
 app.get('/', (req, res) => {
   res.redirect('/login');
@@ -153,7 +160,6 @@ app.post('/logout', (req, res) => {
 
 // get register form
 app.get('/register', (req, res) => {
-  //
   // const username = req.cookies["username"];
   const templateVars = {user: null};
   res.render('register', templateVars);
@@ -164,6 +170,8 @@ app.post('/register', (req, res) => {
   // retrieve username/pass from req.body
   // save those to variables
   const {email, password} = req.body;
+  const hashedPass = hashPassword(password);
+  console.log(hashedPass);
 
   // errors for empty username/pass
   if (req.body.email === '' || req.body.password === '') {
@@ -181,7 +189,9 @@ app.post('/register', (req, res) => {
   }
 
   // if not in usersDb = new user -> register to db as new user
-  const newUser = createUser(email, password, usersDb);
+  const newUser = createUser(email, hashedPass, usersDb);
+  console.log(newUser);
+  console.log(usersDb[newUser]);
 
   // set the user to cookie
   res.cookie('userId', newUser);
