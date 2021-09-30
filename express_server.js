@@ -15,8 +15,14 @@ app.use(cookieParser());
 app.set('view engine', 'ejs');
 // hardcoded DB
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  b6UTxQ: {
+    longURL: "https://www.tsn.ca",
+    userID: "jd2343"
+  },
+  i3BoGr: {
+    longURL: "https://www.google.ca",
+    userID: "sk9823"
+  }
 };
 const usersDb = {
   "jd2343": {
@@ -44,6 +50,7 @@ app.get('/hello', (req, res) => {
   res.send('<html><body>Hello <b> World</b></body></html>\n');
 });
 
+// display all short/long URLS
 app.get('/urls', (req, res) => {
   const templateVars = {
     user:  usersDb[req.cookies["userId"]],
@@ -68,17 +75,27 @@ app.get('/urls/new', (req, res) => {
 
 // generate random string and add it to the db in POST
 app.post('/urls', (req, res) => {
+  // retrieve userId from cookie
+  const userId = req.cookies["userId"];
   // destructured longURL from req
   const {longURL} = req.body;
   const shortURL = generateRandomString();
-  urlDatabase[shortURL] = longURL;
+  urlDatabase[shortURL] = {
+    longURL: longURL,
+    userId: userId
+  };
   res.redirect('/urls');
 });
 
 // pull and display urls from DB
 app.get('/urls/:shortURL', (req, res) => {
+  // extract params and database value
   const {shortURL} = req.params;
-  const longURL = urlDatabase[shortURL];
+  // error if no shortURL
+  if (!urlDatabase[shortURL]) {
+    res.status(404).send('ShortURL not found.');
+  }
+  const longURL = urlDatabase[shortURL].longURL;
   const user = usersDb[req.cookies["userId"]];
   const templateVars = {
     shortURL,
@@ -92,10 +109,13 @@ app.get('/urls/:shortURL', (req, res) => {
 app.post('/urls/:id', (req, res) => {
   // extract shortURL id from req.params.shortURL
   const {id} = req.params;
+  console.log(id);
   // extract update info from req.body.{name of input}
   const {updateURL} = req.body;
+  console.log(updateURL);
   // pass data from req.body.updateURL to urlDatabase
-  urlDatabase[id] = updateURL;
+  urlDatabase[id].longURL = updateURL;
+  console.log(urlDatabase);
   // redirect
   res.redirect('/urls');
 });
@@ -108,21 +128,43 @@ app.post('/urls/:shortURL/delete', (req, res) => {
 });
 
 // Authentication Routes //
-
+// login
+app.get('/login', (req, res) => {
+  // clear user profile
+  const templateVars = {user: null};
+  // render login page
+  res.render('login', templateVars);
+});
 // login
 app.post('/login', (req, res) => {
-  // parse req.body.username
-  const {username} = req.body;
-  // set cookie to the value of username via res.cookie
-  res.cookie('username', username);
-  // redirect back to /urls
-  res.redirect('/urls');
+  // parse login info from req.body
+  const {email, password} = req.body;
+  // if not find by email
+  if (!findUserByEmail(email, usersDb)) {
+    res.status(403).send('User not found');
+  }
+  // authenticate against usersDb for email/pass
+  const user = authenticateUser(email, password, usersDb);
+  // lookup user and if user found in usersDb, let them in
+  if (user) {
+    // if user in usersDb, set cookies to user
+    res.cookie('userId', user.id);
+    // rdirect to /urls
+    res.redirect('/urls');
+    return; // exit from func here
+  } else {
+    res.status(403).send('Incorrect password.');
+  }
+  // if not able to auth, send error 401
+  res.status(401).send('Incorrect username or password.');
 });
+
 // logout
 app.post('/logout', (req, res) => {
   // clear cookie and redirect to /urls
-  res.clearCookie('username');
-  res.redirect('/urls');
+  const userId =  req.cookies["userId"];
+  res.clearCookie('userId');
+  res.redirect('/login');
 });
 
 // Auth Helper Funcs //
@@ -154,7 +196,6 @@ const createUser = (email, password, usersDb) => {
 const authenticateUser = (email, password, usersDb) => {
   // call user from usersDb
   const userFound = findUserByEmail(email, usersDb);
-
   // compare password against one in usersDb
   if (userFound && userFound.password === password) {
     return userFound;
@@ -177,13 +218,20 @@ app.post('/register', (req, res) => {
   const {email, password} = req.body;
   console.log(req.body);
 
+  // errors for empty username/pass
+  if (req.body.email === '' || req.body.password === '') {
+    //
+    res.status(400).send('Please enter a valid username and password.');
+    return;
+  }
+
   // check if user in db
   const userFound = findUserByEmail(email, usersDb);
   console.log('userFound: ', userFound);
 
   // if user in usersDb, return user exists error
   if (userFound) {
-    res.status(401).send('That user already exists. Please enter your password or try again.');
+    res.status(400).send('That user already exists. Please enter your password or try again.');
     return; // terminates and exits here
   }
 
@@ -201,7 +249,6 @@ app.post('/register', (req, res) => {
   // create fake userID with func
   console.log(usersDb);
 });
-
 
 
 app.get('*', function(req, res) {
