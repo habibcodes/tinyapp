@@ -37,9 +37,19 @@ const usersDb = {
   }
 };
 
+const userLinks = (userId) => {
+  const userSites = {};
+  for (let url in urlDatabase) {
+    if (userId === urlDatabase[url].userID) {
+      userSites[url] = urlDatabase[url];
+    }
+  }
+  return userSites;
+};
+
 
 app.get('/', (req, res) => {
-  res.send('hello~');
+  res.redirect('/login');
 });
 
 app.get('/urls.json', (req, res) => {
@@ -52,10 +62,15 @@ app.get('/hello', (req, res) => {
 
 // display all short/long URLS
 app.get('/urls', (req, res) => {
+  const userURLS  = userLinks(req.cookies["userId"]);
   const templateVars = {
     user:  usersDb[req.cookies["userId"]],
-    urls: urlDatabase
+    urls: userURLS,
   };
+  // check if user logged in
+  if (!req.cookies['userId']) {
+    res.status(401).send('Not logged in!');
+  }
   res.render('urls_index', templateVars);
 });
 
@@ -77,13 +92,18 @@ app.get('/urls/new', (req, res) => {
 app.post('/urls', (req, res) => {
   // retrieve userId from cookie
   const userId = req.cookies["userId"];
+  // check if user logged in
+  if (!userId) {
+    res.status(401).send('Not logged in!');
+  }
   // destructured longURL from req
   const {longURL} = req.body;
   const shortURL = generateRandomString();
   urlDatabase[shortURL] = {
     longURL: longURL,
-    userId: userId
+    userID: userId
   };
+  console.log(urlDatabase);
   res.redirect('/urls');
 });
 
@@ -94,6 +114,7 @@ app.get('/urls/:shortURL', (req, res) => {
   // error if no shortURL
   if (!urlDatabase[shortURL]) {
     res.status(404).send('ShortURL not found.');
+    return;
   }
   const longURL = urlDatabase[shortURL].longURL;
   const user = usersDb[req.cookies["userId"]];
@@ -103,6 +124,13 @@ app.get('/urls/:shortURL', (req, res) => {
     user
   };
   res.render('urls_show', templateVars);
+});
+
+// redirect shortURL to longURL
+app.get('/u/:shortURL', (req, res) => {
+  const {shortURL} = req.params;
+  const longURL = urlDatabase[shortURL].longURL;
+  res.redirect(longURL);
 });
 
 // UPDATE (edit)
