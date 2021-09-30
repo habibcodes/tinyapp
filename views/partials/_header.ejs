@@ -19,8 +19,8 @@
       <!-- display logout form -->
       <% } else { %> 
         <form class="form-inline my-2 my-lg-0" action="/logout" method="POST">
-          <!-- <h6 class="text-dark pt-2">Logged In As: <%= user.email %>!</h6> -->
-          <a href="/login" class="badge badge-success">Logout</a>
+          <h6 class="text-dark pt-2">Logged in as <%= user.email %> </h6>
+          <button type="submit" class="btn btn-success">Logout</button>
         </form>
         <% } %> 
       </nav>
