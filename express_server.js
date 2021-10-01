@@ -1,3 +1,4 @@
+// dependencies
 const express = require('express');
 const app = express();
 const PORT = 8080;
@@ -11,35 +12,18 @@ const {findUserByEmail, createUser,authenticateUser, generateRandomString, userL
 // dbs
 const {urlDatabase, usersDb} = require('./database/database');
 
-
+// Middleware //
 app.use(morgan('tiny'));
-// app.use(cookieParser());
 app.use(cookieSession({
   name: 'session',
   keys: ['lknt42fnoh90hn2hf90w8fhofnwe','some other Very long stTring'],
   // Cookie Options
   maxAge: 24 * 60 * 60 * 1000 // 24 hours
 }));
-// middleware
 app.use(bodyParser.urlencoded({extended: true}));
-/* app.use((req, res, next) => {
-  // update views
-  const email = req.session.email;
-  const path = req.path;
-  const allowedPaths = ['/', '/login'];
 
-  if (allowedPaths.includes(path)) {
-    return next();
-  }
-  if (!email) {
-    return res.redirect('/');
-  }
-  next();
-}); */
-// template engine
+// Template Engine //
 app.set('view engine', 'ejs');
-
-
 
 
 app.get('/', (req, res) => {
@@ -53,8 +37,6 @@ app.get('/urls.json', (req, res) => {
 // display all short/long URLS
 app.get('/urls', (req, res) => {
   const userURLS  = userLinks(req.session["userId"]);
-  console.log(req.session["userId"]);
-  console.log(userURLS);
   const templateVars = {
     user:  usersDb[req.session["userId"]],
     urls: userURLS,
@@ -164,7 +146,6 @@ app.post('/login', (req, res) => {
   // lookup user and if user found in usersDb, let them in
   if (user) {
     // if user in usersDb, set cookies to user
-    // res.cookie('userId', user.id);
     req.session.userId = user.id;
     console.log(user.id);
     // rdirect to /urls
@@ -179,9 +160,7 @@ app.post('/login', (req, res) => {
 
 // logout
 app.post('/logout', (req, res) => {
-  // clear cookie and redirect to /urls
-  // const userId =  req.session["userId"];
-  // res.clearCookie('userId');
+  // clear cookie and redirect to /login
   req.session = null;
   console.log('from logout', req.session);
   res.redirect('/login');
@@ -221,9 +200,8 @@ app.post('/register', (req, res) => {
   const newUserId = createUser(email, hashedPass, usersDb);
   console.log(newUserId);
   console.log(usersDb[newUserId]);
-  /*  // set the user to cookie
-  res.cookie('userId', newUser); */
-  // set the session cookie
+  
+  // set the session cookie to user here
   req.session.userId = newUserId;
   // redirect to /urls
   res.redirect('urls');

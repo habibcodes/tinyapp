@@ -31,3 +31,9 @@ TinyApp is a responsive full stack web application built with Node and Express t
 - Log in to see existing URLs, and to edit or delete them.
 - URLs saved in your account are private and cannot be accessesed by non-authorised users.
 
+## Acknowledgements
+Thank you to all the fantastic mentors, including: Jake, Sher, Nasrullah, Eeman, Dom, Lucas and cohort mates: Meghal and Tom! 
+
+Random string generator function is from StackOverflow. 
+
+And most importantly, Google <3. 

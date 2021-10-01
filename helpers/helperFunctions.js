@@ -1,10 +1,10 @@
 const bcrypt = require('bcryptjs');
 const {urlDatabase, usersDb} = require('../database/database');
 
-
 // Auth Helper Funcs //
 // checks entered email against db emails
-// if exists, sets user to db usersId
+// if exists, sets user to db usersId and
+// returns user object
 const findUserByEmail = (email, usersDb) => {
   for (let userId in usersDb) {
     const userInDb = usersDb[userId];
