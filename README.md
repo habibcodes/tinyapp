@@ -15,10 +15,11 @@ TinyApp is a responsive full stack web application built with Node and Express t
 - Node.js
 - Express
 - EJS
-- bcrypt
+- bcryptjs
 - body-parser
 - cookie-session
 - morgan
+- Bootstrap 4.2
 
 ## Getting Started
 
