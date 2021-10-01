@@ -6,8 +6,10 @@
   </button>
   <div class="collapse navbar-collapse justify-content-between" id="navbarNavAltMarkup">
     <div class="navbar-nav">
+      <% if (user) { %> 
       <a class="nav-item nav-link" href="/urls">My URLs</a>
       <a class="nav-item nav-link" href="/urls/new">Create a New Short Link</a>
+      <% } %> 
     </div>
     <!-- display login form -->
     <% if (!user) { %> 
