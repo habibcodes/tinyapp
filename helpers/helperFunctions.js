@@ -1,3 +1,4 @@
+const bcrypt = require('bcryptjs');
 const {urlDatabase, usersDb} = require('../database/database');
 
 
@@ -31,7 +32,7 @@ const authenticateUser = (email, password, usersDb) => {
   // call user from usersDb
   const userFound = findUserByEmail(email, usersDb);
   // compare password against one in usersDb
-  if (userFound && userFound.password === password) {
+  if (userFound && bcrypt.compareSync(password, userFound.password)) {
     return userFound;
   }
   return false;
@@ -53,10 +54,17 @@ const userLinks = (userId) => {
   return userSites;
 };
 
+// hashedPass
+const hashPassword = (unhashedPass) => {
+  const hashedPass = bcrypt.hashSync(unhashedPass, 10);
+  return hashedPass;
+};
+
 module.exports = {
   findUserByEmail,
   createUser,
   authenticateUser,
   generateRandomString,
   userLinks,
+  hashPassword,
 };

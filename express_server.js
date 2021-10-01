@@ -5,24 +5,41 @@ const bodyParser = require('body-parser');
 const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 const bcrypt = require('bcryptjs');
+const cookieSession = require('cookie-session');
 // helper funcs
-const {findUserByEmail, createUser,authenticateUser, generateRandomString, userLinks} = require('./helpers/helperFunctions');
+const {findUserByEmail, createUser,authenticateUser, generateRandomString, userLinks, hashPassword} = require('./helpers/helperFunctions');
 // dbs
 const {urlDatabase, usersDb} = require('./database/database');
 
 
+app.use(morgan('tiny'));
+// app.use(cookieParser());
+app.use(cookieSession({
+  name: 'session',
+  keys: ['lknt42fnoh90hn2hf90w8fhofnwe','some other Very long stTring'],
+  // Cookie Options
+  maxAge: 24 * 60 * 60 * 1000 // 24 hours
+}));
 // middleware
 app.use(bodyParser.urlencoded({extended: true}));
-app.use(morgan('tiny'));
-app.use(cookieParser());
+/* app.use((req, res, next) => {
+  // update views
+  const email = req.session.email;
+  const path = req.path;
+  const allowedPaths = ['/', '/login'];
+
+  if (allowedPaths.includes(path)) {
+    return next();
+  }
+  if (!email) {
+    return res.redirect('/');
+  }
+  next();
+}); */
 // template engine
 app.set('view engine', 'ejs');
 
-// hashedPass
-const hashPassword = (unhashedPass) => {
-  const hashedPass = bcrypt.hashSync(unhashedPass, 10);
-  return hashedPass;
-};
+
 
 
 app.get('/', (req, res) => {
@@ -35,22 +52,29 @@ app.get('/urls.json', (req, res) => {
 
 // display all short/long URLS
 app.get('/urls', (req, res) => {
-  const userURLS  = userLinks(req.cookies["userId"]);
+  const userURLS  = userLinks(req.session["userId"]);
+  console.log(req.session["userId"]);
+  console.log(userURLS);
   const templateVars = {
-    user:  usersDb[req.cookies["userId"]],
+    user:  usersDb[req.session["userId"]],
     urls: userURLS,
   };
   // check if user logged in
-  if (!req.cookies['userId']) {
+  if (!req.session['userId']) {
     res.status(401).send('Not logged in!');
+    return;
   }
   res.render('urls_index', templateVars);
 });
 
 // show form must precede id route
 app.get('/urls/new', (req, res) => {
+  // check if user
+  if (!req.session["userId"]) {
+    return res.redirect('/');
+  }
   const templateVars = {
-    user:  usersDb[req.cookies["userId"]],
+    user:  usersDb[req.session["userId"]],
   };
   res.render('urls_new', templateVars);
 });
@@ -58,7 +82,7 @@ app.get('/urls/new', (req, res) => {
 // generate random string and add it to the db in POST
 app.post('/urls', (req, res) => {
   // retrieve userId from cookie
-  const userId = req.cookies["userId"];
+  const userId = req.session["userId"];
   // check if user logged in
   if (!userId) {
     res.status(401).send('Not logged in!');
@@ -83,7 +107,7 @@ app.get('/urls/:shortURL', (req, res) => {
     return;
   }
   const longURL = urlDatabase[shortURL].longURL;
-  const user = usersDb[req.cookies["userId"]];
+  const user = usersDb[req.session["userId"]];
   const templateVars = {
     shortURL,
     longURL,
@@ -136,10 +160,13 @@ app.post('/login', (req, res) => {
   }
   // authenticate against usersDb for email/pass
   const user = authenticateUser(email, password, usersDb);
+  console.log('logging user line 158', user);
   // lookup user and if user found in usersDb, let them in
   if (user) {
     // if user in usersDb, set cookies to user
-    res.cookie('userId', user.id);
+    // res.cookie('userId', user.id);
+    req.session.userId = user.id;
+    console.log(user.id);
     // rdirect to /urls
     res.redirect('/urls');
     return; // exit from func here
@@ -153,8 +180,10 @@ app.post('/login', (req, res) => {
 // logout
 app.post('/logout', (req, res) => {
   // clear cookie and redirect to /urls
-  const userId =  req.cookies["userId"];
-  res.clearCookie('userId');
+  // const userId =  req.session["userId"];
+  // res.clearCookie('userId');
+  req.session = null;
+  console.log('from logout', req.session);
   res.redirect('/login');
 });
 
@@ -189,13 +218,13 @@ app.post('/register', (req, res) => {
   }
 
   // if not in usersDb = new user -> register to db as new user
-  const newUser = createUser(email, hashedPass, usersDb);
-  console.log(newUser);
-  console.log(usersDb[newUser]);
-
-  // set the user to cookie
-  res.cookie('userId', newUser);
-
+  const newUserId = createUser(email, hashedPass, usersDb);
+  console.log(newUserId);
+  console.log(usersDb[newUserId]);
+  /*  // set the user to cookie
+  res.cookie('userId', newUser); */
+  // set the session cookie
+  req.session.userId = newUserId;
   // redirect to /urls
   res.redirect('urls');
 });
