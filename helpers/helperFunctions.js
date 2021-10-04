@@ -38,6 +38,7 @@ const authenticateUser = (email, password, usersDb) => {
   return false;
 };
 
+// ref: stackOverflow "generate random string javascript"
 // generate random 6 character string for ID
 const generateRandomString = () => {
   const randomStr = (Math.random() + 1).toString(36).substring(7);
