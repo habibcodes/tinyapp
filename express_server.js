@@ -4,7 +4,6 @@ const app = express();
 const PORT = 8080;
 const bodyParser = require('body-parser');
 const morgan = require('morgan');
-// const cookieParser = require('cookie-parser');
 const bcrypt = require('bcryptjs');
 const cookieSession = require('cookie-session');
 // helper funcs
@@ -25,7 +24,6 @@ app.use(bodyParser.urlencoded({extended: true}));
 // Template Engine //
 app.set('view engine', 'ejs');
 
-
 app.get('/', (req, res) => {
   res.redirect('/login');
 });
@@ -41,7 +39,6 @@ app.get('/urls', (req, res) => {
     user:  usersDb[req.session["userId"]],
     urls: userURLS,
   };
-  // check if user logged in
   if (!req.session['userId']) {
     res.status(401).send('Not logged in!');
     return;
@@ -49,9 +46,8 @@ app.get('/urls', (req, res) => {
   res.render('urls_index', templateVars);
 });
 
-// show form must precede id route
+// get new URL form if user signed in
 app.get('/urls/new', (req, res) => {
-  // check if user
   if (!req.session["userId"]) {
     return res.redirect('/');
   }
@@ -63,13 +59,10 @@ app.get('/urls/new', (req, res) => {
 
 // generate random string and add it to the db in POST
 app.post('/urls', (req, res) => {
-  // retrieve userId from cookie
   const userId = req.session["userId"];
-  // check if user logged in
   if (!userId) {
     res.status(401).send('Not logged in!');
   }
-  // destructured longURL from req
   const {longURL} = req.body;
   const shortURL = generateRandomString();
   urlDatabase[shortURL] = {
@@ -79,17 +72,23 @@ app.post('/urls', (req, res) => {
   res.redirect('/urls');
 });
 
-// pull and display urls from DB
+// pull and display urls from DB if user signed in and owns data
 app.get('/urls/:shortURL', (req, res) => {
   // extract params and database value
   const {shortURL} = req.params;
+  const user = usersDb[req.session["userId"]];
+  const userId = req.session.userId;
+  if (!userId) {
+    return res.status(401).send('Not logged in!');
+  }
+  if (userId !== urlDatabase[shortURL].userID) {
+    return res.status(401).send('You are not authorised to edit this URL!');
+  }
   // error if no shortURL
   if (!urlDatabase[shortURL]) {
-    res.status(404).send('ShortURL not found.');
-    return;
+    return res.status(404).send('ShortURL not found.');
   }
   const longURL = urlDatabase[shortURL].longURL;
-  const user = usersDb[req.session["userId"]];
   const templateVars = {
     shortURL,
     longURL,
@@ -107,34 +106,47 @@ app.get('/u/:shortURL', (req, res) => {
 
 // UPDATE (edit)
 app.post('/urls/:id', (req, res) => {
-  // extract shortURL id from req.params.shortURL
+  const userId = req.session.userId;
+  if (!userId) {
+    res.status(401).send('Not logged in!');
+  }
   const {id} = req.params;
+  // check if user logged in
+  if (userId !== urlDatabase[id].userID) {
+    res.status(401).send('You are not authorised to edit this URL!');
+  }
   // extract update info from req.body.{name of input}
   const {updateURL} = req.body;
-  // pass data from req.body.updateURL to urlDatabase
   urlDatabase[id].longURL = updateURL;
-  // redirect
   res.redirect('/urls');
 });
 
 // delete urls
 app.post('/urls/:shortURL/delete', (req, res) => {
   const shortURL = req.params.shortURL;
+  // retrieve userId from cookie
+  const userId = req.session["userId"];
+  // check if user logged in
+  if (!userId) {
+    res.status(401).send('Not logged in!');
+  }
+  // check if user logged in owns the shortURL being accessed
+  if (userId !== urlDatabase[shortURL].userID) {
+    res.status(401).send('You are not authorised to delete this URL!');
+  }
   delete urlDatabase[shortURL];
   res.redirect('/urls');
 });
 
 // Authentication Routes //
-// login
+// login; clear previous users
 app.get('/login', (req, res) => {
-  // clear user profile
   const templateVars = {user: null};
-  // render login page
   res.render('login', templateVars);
 });
+
 // login
 app.post('/login', (req, res) => {
-  // parse login info from req.body
   const {email, password} = req.body;
   // if not find by email
   if (!findUserByEmail(email, usersDb)) {
@@ -142,7 +154,6 @@ app.post('/login', (req, res) => {
   }
   // authenticate against usersDb for email/pass
   const user = authenticateUser(email, password, usersDb);
-  console.log('logging user line 158', user);
   // lookup user and if user found in usersDb, let them in
   if (user) {
     // if user in usersDb, set cookies to user
@@ -150,7 +161,7 @@ app.post('/login', (req, res) => {
     console.log(user.id);
     // rdirect to /urls
     res.redirect('/urls');
-    return; // exit from func here
+    return;
   } else {
     res.status(403).send('Incorrect password.');
   }
@@ -159,57 +170,38 @@ app.post('/login', (req, res) => {
 });
 
 // logout
+// clear cookie and redirect to /login
 app.post('/logout', (req, res) => {
-  // clear cookie and redirect to /login
   req.session = null;
-  console.log('from logout', req.session);
   res.redirect('/login');
 });
 
 // get register form
 app.get('/register', (req, res) => {
-  // const username = req.cookies["username"];
   const templateVars = {user: null};
   res.render('register', templateVars);
 });
 
-// register POST route
+// register POST route, sets cookies and hashed password
 app.post('/register', (req, res) => {
-  // retrieve username/pass from req.body
-  // save those to variables
   const {email, password} = req.body;
   const hashedPass = hashPassword(password);
   console.log(hashedPass);
-
-  // errors for empty username/pass
   if (req.body.email === '' || req.body.password === '') {
-    //
     res.status(400).send('Please enter a valid username and password.');
     return;
   }
 
   // check if user in db
+  // if user in usersDb, else return user exists error
   const userFound = findUserByEmail(email, usersDb);
-  // if user in usersDb, return user exists error
   if (userFound) {
     res.status(400).send('That user already exists. Please enter your password or try again.');
-    return; // terminates and exits here
+    return;
   }
-
-  // if not in usersDb = new user -> register to db as new user
   const newUserId = createUser(email, hashedPass, usersDb);
-  console.log(newUserId);
-  console.log(usersDb[newUserId]);
-  
-  // set the session cookie to user here
   req.session.userId = newUserId;
-  // redirect to /urls
   res.redirect('urls');
-});
-
-// handles all 404 errors
-app.get('*', function(req, res) {
-  res.status(404).send('404: shortURL not found.');
 });
 
 // open port and listen
