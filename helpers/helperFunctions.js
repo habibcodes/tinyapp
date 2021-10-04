@@ -38,12 +38,13 @@ const authenticateUser = (email, password, usersDb) => {
   return false;
 };
 
-// stackOverflow
+// generate random 6 character string for ID
 const generateRandomString = () => {
   const randomStr = (Math.random() + 1).toString(36).substring(7);
   return randomStr;
 };
 
+// return object with user's URLs from DB
 const userLinks = (userId) => {
   const userSites = {};
   for (let url in urlDatabase) {
